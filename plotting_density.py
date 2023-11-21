@@ -4,7 +4,7 @@ import matplotlib
 fig = plt.figure()
 
 
-def plotting(X, t, geo):
+def plotting(X, t):
     plt.clf()
     plt.plot(X, t)
     plt.pause(1/300)
