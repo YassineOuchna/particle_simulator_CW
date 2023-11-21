@@ -1,49 +1,38 @@
 # The Particles Collision Simulator
 
-
-
-
-
-***
-
-# README
-
-
-
-
-
-
-
 ## Description
-This project aims to use pygame and pymunk to simulate the behaviour of gas/fluid particles. The simulation is done in 2D (as pymunk is a 2D physics engine) and the particles is idealized as **rigid body balls** with varing size, elasticity, fiction and so on.
+This project aims to use pygame and pymunk to simulate the behaviour of gas/fluid particles. The simulation is done in 2D (as pymunk is a 2D physics engine) and the particles are idealized as **rigid body balls** with varying size, elasticity, friction and so on.
 
 Due to the limitation of the game engine and cpu performance, we only simulate the behaviour of around 10000 particles, which is quiet different from real world situation. Because of the deviation from the real world, we are more than exited to see how the paritcles behave compared to the real world situation.
 ### **Features**
-The simulator should allow user to alter the number of particles, size of the particles, initial speed distribution, elasticity and friction via a Graphic interface. 
-***
-The simulator should allow user to switch between different simulation modes. 
+The simulator consists of two modes : *diffusion mode* and *wave mode*, each mode allows users to alter the number of particles, size of the particles, initial speed distribution, elasticity and friction via a Graphic interface. 
 
-For example: *wave measurement mode* would give the particle a small pertubation and simulate the propagation of wave.
+## Wave mode 
 
-In *diffusion mode*, there will be no boundary walls, thus one can diffusion of particles
-***
-The simulation should give the distribution of pariticle velocity at real time. In different simulation mode, the simulator should give out different simulation satistics.
+By running the file *wave_mode.py*, you are presented with an interface to change different parameters in an experiment simulating a piston wall pushing on particles.
 
-For example, in *wave measurement mode*, the simulator should give out the 1D particle distribution with respect to the coordinate.
+*Preview of the wave mode* 
 
-In *diffusion mode*, the simulator should give out the diffusion rate.
+<img src='./demos/wave.gif?raw=true'/>
 
 
+## Diffusion mode 
 
+By running the file *diffusion_mode.py*, you are presented with an
+ interface to change different parameters as well as a button to graph 
+particle density in real time (although quite laggy). The simulation
+to show the diffusion of two types of particles in two initially seperated compartiments that are fused into one compartiment
+by deleting the wall sperating them. 
 
+*Preview of the diffusion mode*
 
-## Visuals
-Update 12/11/2022
+<img src='./demos/diffusion.gif?raw=true'/>
 
-![Wave like behaviour of particles](https://media.giphy.com/media/fj0YZa5EkzHrQioMew/giphy-downsized-large.gif) 
 
 ## Installation
 The simulator requires the following python packages:
+
+tkinter
 
 pymunk
 
@@ -54,14 +43,8 @@ matplotlib
 numpy
 
 
-
-## Support
-If you have any problem with the simulator. 
-
-Please contact Bowen.zhu@student-cs.fr
-
 ## Roadmap
-Planning for the future. Additional playground mode may be released where you can place obstacles to see the behaviour of the particles.
+We could improve the simulator by first fusing the two modes into a single interface and optimizing performance while graphing and simulating at the same time.
 
 
 
