@@ -20,8 +20,8 @@ By running the file *wave_mode.py*, you are presented with an interface to chang
 
 By running the file *diffusion_mode.py*, you are presented with an
  interface to change different parameters as well as a button to graph 
-particle density in real time (although quite laggy). The simulation
-to show the diffusion of two types of particles in two initially seperated compartiments that are fused into one compartiment
+particle density in the opposite compartment in real time (although quite laggy). The simulation
+to show the diffusion of two types of particles in two initially seperated compartments that are fused into one compartment
 by deleting the wall sperating them. 
 
 *Preview of the diffusion mode*
