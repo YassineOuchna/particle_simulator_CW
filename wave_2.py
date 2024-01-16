@@ -24,22 +24,26 @@ class Slider():
         self.y = y
         self.min = min
         self.max = max
-        self.value = min
+        self.cy = y             # Position of the topleft of the slider handle
+        self.cx = x
+        self.value = round(100*(self.min+(self.max-self.min) *
+                                (self.cx-self.x+0.1*w_slider/2)/(w_slider)))/100
 
     def render(self):
         box = pygame.draw.rect(screen, (134, 136, 138),
                                (self.x, self.y, w_slider, h_slider))
-        c_pos = int(((self.value-self.min)*w_slider) /
-                    (self.max-self.min)+self.x-(0.1*w_slider)//2)
+        # UPDATING CURSOR POSITION
+        self.value = round(100*(self.min+(self.max-self.min) *
+                                (self.cx-self.x+0.1*w_slider/2)/(w_slider)))/100
         cursor = pygame.draw.rect(
-            screen, (202, 204, 206), (c_pos, self.y, int(0.1*w_slider), h_slider))
+            screen, (202, 204, 206), (self.cx, self.cy, int(0.1*w_slider), h_slider))
 
         font = pygame.font.Font(None, 36)
         title = font.render(self.title, True, (255, 255, 255))
         value = font.render(str(self.value), True, (255, 255, 255))
         title_rect = title.get_rect(center=(self.x-125, self.y+h_slider//2))
         value_rect = value.get_rect(
-            center=(c_pos+0.1*w_slider//2, self.y-h_slider//2))
+            center=(self.cx+0.1*w_slider//2, self.cy-h_slider//2))
         screen.blit(title, title_rect)
         screen.blit(value, value_rect)
         return cursor
@@ -93,16 +97,25 @@ class Kinematic_Wall():
 
 
 if __name__ == "__main__":
-    RUNNING = True
-    while RUNNING:
+    running = True
+    dragging = False
+    while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                RUNNING = False
+                running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if pygame.mouse.get_pressed()[0]:     # Left mouse click
                     mx, my = pygame.mouse.get_pos()
                     if l.render().collidepoint(mx, my):
-                        l.value = 1.5
+                        # l.cx = mx-0.1*w_slider//2
+                        dragging = True
+            if event.type == pygame.MOUSEMOTION:
+                if dragging:
+                    if l.cx + event.rel[0] >= l.x and l.cx + event.rel[0] <= l.x+w_slider:
+                        l.cx += event.rel[0]
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    dragging = False
         screen.fill((0, 0, 0))
         l.render()
         pygame.display.update()
