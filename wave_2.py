@@ -27,14 +27,14 @@ class Slider():
         self.cy = y             # Position of the topleft of the slider handle
         self.cx = x
         self.value = round(100*(self.min+(self.max-self.min) *
-                                (self.cx-self.x+0.1*w_slider/2)/(w_slider)))/100
+                                (self.cx-self.x)/(0.9*w_slider)))/100
 
     def render(self):
         box = pygame.draw.rect(screen, (134, 136, 138),
                                (self.x, self.y, w_slider, h_slider))
         # UPDATING CURSOR POSITION
         self.value = round(100*(self.min+(self.max-self.min) *
-                                (self.cx-self.x+0.1*w_slider/2)/(w_slider)))/100
+                                (self.cx-self.x)/(0.9*w_slider)))/100
         cursor = pygame.draw.rect(
             screen, (202, 204, 206), (self.cx, self.cy, int(0.1*w_slider), h_slider))
 
@@ -46,7 +46,7 @@ class Slider():
             center=(self.cx+0.1*w_slider//2, self.cy-h_slider//2))
         screen.blit(title, title_rect)
         screen.blit(value, value_rect)
-        return cursor
+        return cursor, box
 
 
 l = Slider("TEST", 0, 5, WIDTH//2, HEIGHT//2)
@@ -106,12 +106,17 @@ if __name__ == "__main__":
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if pygame.mouse.get_pressed()[0]:     # Left mouse click
                     mx, my = pygame.mouse.get_pos()
-                    if l.render().collidepoint(mx, my):
-                        # l.cx = mx-0.1*w_slider//2
+                    if l.render()[0].collidepoint(mx, my):
                         dragging = True
+                    elif l.render()[1].collidepoint(mx, my):
+                        dragging = True
+                        if mx-0.1*w_slider//2 >= l.x:
+                            l.cx = min(mx-0.1*w_slider//2, l.x+0.9*w_slider)
+                        elif mx-0.1*w_slider//2 <= l.x+0.9*w_slider:
+                            l.cx = max(mx-0.1*w_slider//2, l.x)
             if event.type == pygame.MOUSEMOTION:
                 if dragging:
-                    if l.cx + event.rel[0] >= l.x and l.cx + event.rel[0] <= l.x+w_slider:
+                    if l.cx + event.rel[0] >= l.x and l.cx + event.rel[0] <= l.x+0.9*w_slider:
                         l.cx += event.rel[0]
             if event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
