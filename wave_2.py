@@ -5,6 +5,9 @@ import time
 
 '''--- INITIALIZING ENVIRONEMENT & GLOBAL CONSTANTS ---'''
 
+clock = pygame.time.Clock()
+FPS=180
+compression_start_time=60
 pygame.init()
 space = pymunk.Space()
 WIDTH, HEIGHT = int(
@@ -12,9 +15,12 @@ WIDTH, HEIGHT = int(
 FONT_SIZE = 25
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
-# Height and width of the whole slider
+# Height and width of certain elements
 w_slider = int(0.2*WIDTH)
 h_slider = int(0.03*HEIGHT)
+
+w_wave= int(WIDTH*2/3)
+h_wave= int(HEIGHT/2)
 
 
 '''--- GUI ELEMENTS ---'''
@@ -94,27 +100,28 @@ def static_menu():
     screen.blit(text, text_rect)
 
 
-# Setting up sliders
+# Initializing up sliders
 x0=int(WIDTH*5/6-w_slider*0.25)
 y0=int(0.2*HEIGHT)
 sep=h_slider+50
 sliders={
-    "Particle size": Slider("Particle size", 0.1, 5, x0, y0, discrete=False),
+    "Particle size": Slider("Particle size", 0.1, 5, x0, y0),
     "Inital speed": Slider("Inital speed", 0, 500, x0, y0+sep),
     "Elasticity": Slider("Elasticity", 0, 1, x0, y0+2*sep, discrete=False),
-    "Pistion speed": Slider("Pistion speed", 1, 200, x0, y0+3*sep),
+    "Piston speed": Slider("Piston speed", 1, 200, x0, y0+3*sep),
     "Compression rate": Slider("Compression (%)", 0, 100, x0, y0+4*sep),
-    "Number of particles": Slider("N° of particles", 1, 2000, x0, y0+5*sep),
+    "Number of particles": Slider("N° of particles", 1, 500, x0, y0+5*sep),
 }
 StartButton=Button("Start", int(WIDTH*5/6), int(HEIGHT*0.75))
 GraphButton=Button("Density graph", int(WIDTH*5/6), int(HEIGHT*0.75)+sep)
 buttons=[StartButton, GraphButton]
 
 
-'''--- SIMULATION ELEMENTS --- 
+'''--- SIMULATION ELEMENTS ---'''
+
 
 class Ball():
-    def __init__(self, x, y):
+    def __init__(self, x, y, speed_limit, particle_size, elasticity):
         self.x = x
         self.y = y
         self.body = pymunk.Body()
@@ -132,58 +139,100 @@ class Ball():
 class Satistic_Wall():
     def __init__(self, p1, p2):
         self.body = pymunk.Body(body_type=pymunk.Body.STATIC)
-        # I don't quite understand it here
         self.shape = pymunk.Segment(self.body, p1, p2, 3)
         self.shape.elasticity = 1
         space.add(self.shape, self.body)
 
 class Kinematic_Wall():
-    def __init__(self, p1, p2):
+    def __init__(self, p1, p2, pusher_speed, compression):
+        self.speed=pusher_speed
+        # Multiplying by frame rate because units 
+        self.run_time=FPS*(w_wave*compression/(100*pusher_speed))
         self.body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-        self.shape = pymunk.Segment(self.body, p1, p2, 3)
+        self.shape = pymunk.Segment(self.body, p1, p2, 10)
         self.shape.body.velocity = (0, 0)
-        self.shape.elasticity = pusher_elasticity
+        self.shape.elasticity = 1
         self.time = 0
         space.add(self.shape, self.body)
 
     def stop(self):
         self.time = self.time+1
-        if self.time < pusher_start_time:
+        if self.time < compression_start_time:
             self.shape.body.velocity = (0, 0)
-        elif self.time > pusher_run_time+pusher_start_time:
+        elif self.time > self.run_time+compression_start_time:
             self.shape.body.velocity = (0, 0)
         else:
-            self.shape.body.velocity = (pusher_speed, 0)'''
+            self.shape.body.velocity = (self.speed, 0)
+
+def start_wave():
+    # Removing old shapes
+    for shape in space.shapes:
+        space.remove(shape)
+    for body in space.bodies:
+        space.remove(body)
+
+    # Fetching sliders' values 
+    particle_size=sliders["Particle size"].value
+    speed_limit=sliders["Inital speed"].value
+    elasticity=sliders["Elasticity"].value
+    pusher_speed=sliders["Piston speed"].value
+    compression=sliders["Compression rate"].value
+    num_of_balls=sliders["Number of particles"].value
+
+    # Creating physical objects
+    balls = [Ball(random.randint(0, w_wave), random.randint(0, h_wave), 
+                  speed_limit, particle_size,elasticity) for i in range(num_of_balls)]
+    piston = Kinematic_Wall((0, 0), (0, h_wave), pusher_speed, compression)
+    Satistic_Wall((0, 0), (w_wave, 0)),
+    Satistic_Wall((w_wave, 0), (w_wave, h_wave)),
+    Satistic_Wall((0, h_wave), (w_wave, h_wave))
+
+    return balls, piston
 
 
 if __name__ == "__main__":
+    WAVE= False
     running = True
-    dragged_slider = False
+    dragged = None
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             
-            for slider_name in sliders:
-                slider=sliders[slider_name]
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if pygame.mouse.get_pressed()[0]:     # Left mouse click
-                        mx, my = pygame.mouse.get_pos()
+            # Left mouse click
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if pygame.mouse.get_pressed()[0]: 
+                    mx, my = pygame.mouse.get_pos()
+
+                    # Slider logic
+                    for slider_name in sliders:
+                        slider=sliders[slider_name]
                         if slider.render().collidepoint(mx, my):
-                            dragged_slider = slider
+                            # Slider presumed dragged
+                            dragged = slider_name
                             if mx-0.1*w_slider//2 >= slider.x:
                                 slider.cx = min(mx-0.1*w_slider//2, slider.x+0.9*w_slider)
                             elif mx-0.1*w_slider//2 <= slider.x+0.9*w_slider:
                                 slider.cx = max(mx-0.1*w_slider//2, slider.x)
-                if event.type == pygame.MOUSEMOTION:
-                    # Prevents updating the dragged slider more than once
-                    # in the for loop on the sliders
-                    if dragged_slider==slider:
-                        if dragged_slider.cx + event.rel[0] >= dragged_slider.x and dragged_slider.cx + event.rel[0] <= dragged_slider.x+0.9*w_slider:
-                            dragged_slider.cx += event.rel[0]
+                        
+                    # Button logic
+                    if StartButton.render().collidepoint(mx,my):
+                        WAVE=True
+                        balls, piston=start_wave()
+                    if GraphButton.render().collidepoint(mx,my):
+                        pass
+            
+            # Mouse movement
+            if event.type == pygame.MOUSEMOTION:
+                # Only update the dragged slider
+                if dragged:
+                    if sliders[dragged].cx + event.rel[0] >= sliders[dragged].x and sliders[dragged].cx + event.rel[0] <= sliders[dragged].x+0.9*w_slider:
+                        sliders[dragged].cx += event.rel[0]
+                
+            # Left un-click
             if event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
-                    dragged_slider = None
+                    dragged = None
 
         # Wiping off the screen
         screen.fill((0, 0, 0))
@@ -194,6 +243,19 @@ if __name__ == "__main__":
         
         for button in buttons:
             button.render()
+        if WAVE:
+            ball_size=balls[0].shape.radius
+            for ball in balls:
+                x, y = ball.body.position
+                pygame.draw.circle(screen, (255, 255, 255),
+                                    (int(x), int(y)), ball_size)
+            px,py=(piston.body.position[0],piston.shape.center_of_gravity[1])
+            pygame.draw.rect(screen, (202, 204, 206),(int(px-5),0,10, h_wave))
+            piston.stop()
+            clock.tick(FPS)
+            space.step(1/FPS)
+        
+
         static_menu()
         pygame.display.update()
     pygame.quit()
