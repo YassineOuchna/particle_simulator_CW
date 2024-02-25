@@ -2,6 +2,7 @@ import pygame
 import pymunk
 import random
 import time
+from numpy import sqrt
 
 '''--- INITIALIZING ENVIRONEMENT & GLOBAL CONSTANTS ---'''
 
@@ -19,8 +20,10 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 w_slider = int(0.2*WIDTH)
 h_slider = int(0.03*HEIGHT)
 
-w_wave= int(WIDTH*2/3)
-h_wave= int(HEIGHT/2)
+x_wave=30
+y_wave=30
+w_wave= int(WIDTH*2/3) - x_wave
+h_wave= int(HEIGHT/2) - y_wave
 
 
 '''--- GUI ELEMENTS ---'''
@@ -73,7 +76,9 @@ class Slider():
             draw_x=self.x+(self.value-self.min)*partition_length
         else:
             draw_x=self.cx
-        cursor = pygame.draw.rect(
+        
+        # Drawing slider handle
+        pygame.draw.rect(
             screen, (202, 204, 206), (draw_x, self.cy, int(0.1*w_slider), h_slider))
 
 
@@ -87,34 +92,58 @@ class Slider():
         screen.blit(value, value_rect)
         return box
 
-def static_menu():
+    def click_update(self, mx):
+        # Updates position to that of the mouse
+        if mx-0.1*w_slider//2 >= self.x:
+            self.cx = min(mx-0.1*w_slider//2, self.x+0.9*w_slider)
+        elif mx-0.1*w_slider//2 <= self.x+0.9*w_slider:
+            self.cx = max(mx-0.1*w_slider//2, self.x)
+
+
+def draw_menu(sliders : dict[str : Slider], buttons : list[Button]):
+    
     # Slicing the screen
     purple=(255, 0, 246)
     pygame.draw.line(screen, purple,(int(WIDTH*2/3),0), (int(WIDTH*2/3),HEIGHT))
     pygame.draw.line(screen, purple,(0,HEIGHT//2), (int(WIDTH*2/3),HEIGHT//2))
     pygame.draw.circle(screen, purple,(WIDTH//2,HEIGHT//2), radius=2)
+    
+    # Drawing the simulation box
+    pygame.draw.line(screen, (255,255,255),(x_wave, y_wave), (w_wave, y_wave))
+    pygame.draw.line(screen, (255,255,255),(w_wave, y_wave), (w_wave, h_wave))
+    pygame.draw.line(screen, (255,255,255),(x_wave, h_wave), (w_wave, h_wave))
+    pygame.draw.line(screen, (255,255,255),(x_wave, y_wave), (x_wave, h_wave))
+
     # Rendering title
     title_font = pygame.font.Font(None, 50)
     text = title_font.render('Control Panel', True, (255, 255, 255))
     text_rect = text.get_rect(center=(int(WIDTH*5/6),int(0.07*HEIGHT)))
     screen.blit(text, text_rect)
 
+    # Rendering UI elements 
+    for slider_name in sliders:
+        sliders[slider_name].render()
+    
+    for button in buttons:
+        button.render()
 
-# Initializing up sliders
+
+
+# Initializing sliders
 x0=int(WIDTH*5/6-w_slider*0.25)
 y0=int(0.2*HEIGHT)
 sep=h_slider+50
 sliders={
-    "Particle size": Slider("Particle size", 0.1, 5, x0, y0),
+    "Particle size": Slider("Particle size", 1, 10, x0, y0),
     "Inital speed": Slider("Inital speed", 0, 500, x0, y0+sep),
     "Elasticity": Slider("Elasticity", 0, 1, x0, y0+2*sep, discrete=False),
-    "Piston speed": Slider("Piston speed", 1, 200, x0, y0+3*sep),
+    "Piston speed": Slider("Piston speed", 1, 400, x0, y0+3*sep),
     "Compression rate": Slider("Compression (%)", 0, 100, x0, y0+4*sep),
     "Number of particles": Slider("N° of particles", 1, 500, x0, y0+5*sep),
 }
 StartButton=Button("Start", int(WIDTH*5/6), int(HEIGHT*0.75))
-GraphButton=Button("Density graph", int(WIDTH*5/6), int(HEIGHT*0.75)+sep)
-buttons=[StartButton, GraphButton]
+QuitButton=Button("Quit", int(WIDTH*5/6), int(HEIGHT*0.75)+sep)
+buttons=[StartButton, QuitButton]
 
 
 '''--- SIMULATION ELEMENTS ---'''
@@ -180,15 +209,47 @@ def start_wave():
     num_of_balls=sliders["Number of particles"].value
 
     # Creating physical objects
-    balls = [Ball(random.randint(0, w_wave), random.randint(0, h_wave), 
+    balls = [Ball(random.randint(x_wave, w_wave), random.randint(y_wave, h_wave), 
                   speed_limit, particle_size,elasticity) for i in range(num_of_balls)]
-    piston = Kinematic_Wall((0, 0), (0, h_wave), pusher_speed, compression)
-    Satistic_Wall((0, 0), (w_wave, 0)),
-    Satistic_Wall((w_wave, 0), (w_wave, h_wave)),
-    Satistic_Wall((0, h_wave), (w_wave, h_wave))
+    piston = Kinematic_Wall((x_wave, y_wave), (x_wave, h_wave), pusher_speed, compression)
+    Satistic_Wall((x_wave, y_wave), (w_wave, y_wave))
+    Satistic_Wall((w_wave, y_wave), (w_wave, h_wave))
+    Satistic_Wall((x_wave, h_wave), (w_wave, h_wave))
 
     return balls, piston
 
+def draw_wave(balls : list[Ball], piston : Kinematic_Wall):
+    ball_size=balls[0].shape.radius
+    for ball in balls:
+        x, y = ball.body.position
+        pygame.draw.circle(screen, (255, 255, 255),
+                            (int(x), int(y)), ball_size)
+    px=piston.body.position[0]
+    pygame.draw.rect(screen, (202, 204, 206),(int(px),y_wave,10, h_wave-y_wave))
+    pygame.draw.rect(screen, (202, 204, 206),(x_wave,(h_wave+y_wave)//2-5,int(px-5)-x_wave, 10))
+    piston.stop()
+
+def graph_wave(balls : list[Ball]):
+    ball_size=balls[0].shape.radius
+    ArrowSize=20
+    nbrSplits=50
+    xScale=int((w_wave-x_wave)/nbrSplits)
+    yScale=int((h_wave-y_wave)/(0.5*xScale*(h_wave-y_wave)/(2*ball_size)**2))
+    pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave), (w_wave,HEIGHT-y_wave))
+    pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave), (x_wave,HEIGHT//2+y_wave))
+    pygame.draw.polygon(screen, (255,255,255), 
+                        points=[(int(w_wave-ArrowSize/sqrt(2)),int(HEIGHT-y_wave-ArrowSize/sqrt(2))), 
+                                (w_wave,HEIGHT-y_wave), (int(w_wave-ArrowSize/sqrt(2)),int(HEIGHT-y_wave+ArrowSize/sqrt(2)))])
+    pygame.draw.polygon(screen, (255,255,255), 
+                        points=[(int(x_wave+ArrowSize/sqrt(2)),int(HEIGHT//2+y_wave+ArrowSize/sqrt(2))), 
+                                (x_wave,HEIGHT//2+y_wave), (int(x_wave-ArrowSize/sqrt(2)),int(HEIGHT//2+y_wave+ArrowSize/sqrt(2)))])
+    bins=[0]*(nbrSplits+1)
+    for ball in balls:
+        x =ball.body.position[0]
+        binIndex=min(int((x-x_wave)/xScale),nbrSplits)
+        bins[binIndex]+=1
+    pygame.draw.lines(screen, (255, 165, 0), closed=False, points=[(i*xScale+x_wave, HEIGHT-y_wave-bins[i]*yScale) for i in range(len(bins))])
+    
 
 if __name__ == "__main__":
     WAVE= False
@@ -210,24 +271,22 @@ if __name__ == "__main__":
                         if slider.render().collidepoint(mx, my):
                             # Slider presumed dragged
                             dragged = slider_name
-                            if mx-0.1*w_slider//2 >= slider.x:
-                                slider.cx = min(mx-0.1*w_slider//2, slider.x+0.9*w_slider)
-                            elif mx-0.1*w_slider//2 <= slider.x+0.9*w_slider:
-                                slider.cx = max(mx-0.1*w_slider//2, slider.x)
+                            slider.click_update(mx)
                         
                     # Button logic
                     if StartButton.render().collidepoint(mx,my):
                         WAVE=True
                         balls, piston=start_wave()
-                    if GraphButton.render().collidepoint(mx,my):
-                        pass
+                    if QuitButton.render().collidepoint(mx,my):
+                        running=False
             
             # Mouse movement
             if event.type == pygame.MOUSEMOTION:
                 # Only update the dragged slider
                 if dragged:
-                    if sliders[dragged].cx + event.rel[0] >= sliders[dragged].x and sliders[dragged].cx + event.rel[0] <= sliders[dragged].x+0.9*w_slider:
-                        sliders[dragged].cx += event.rel[0]
+                    s=sliders[dragged]
+                    if s.cx + event.rel[0] >= s.x and s.cx + event.rel[0] <= s.x+0.9*w_slider:
+                        s.cx += event.rel[0]
                 
             # Left un-click
             if event.type == pygame.MOUSEBUTTONUP:
@@ -238,24 +297,13 @@ if __name__ == "__main__":
         screen.fill((0, 0, 0))
 
         # Re-drawing elements
-        for slider_name in sliders:
-            sliders[slider_name].render()
-        
-        for button in buttons:
-            button.render()
+        draw_menu(sliders, buttons)
+
         if WAVE:
-            ball_size=balls[0].shape.radius
-            for ball in balls:
-                x, y = ball.body.position
-                pygame.draw.circle(screen, (255, 255, 255),
-                                    (int(x), int(y)), ball_size)
-            px,py=(piston.body.position[0],piston.shape.center_of_gravity[1])
-            pygame.draw.rect(screen, (202, 204, 206),(int(px-5),0,10, h_wave))
-            piston.stop()
+            graph_wave(balls)
+            draw_wave(balls, piston)
             clock.tick(FPS)
             space.step(1/FPS)
-        
 
-        static_menu()
         pygame.display.update()
     pygame.quit()
