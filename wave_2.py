@@ -4,10 +4,10 @@ import random
 import time
 from numpy import sqrt
 
-'''--- INITIALIZING ENVIRONEMENT & GLOBAL CONSTANTS ---'''
+# --- INITIALIZING ENVIRONEMENT & GLOBAL CONSTANTS ---
 
 clock = pygame.time.Clock()
-FPS=180
+FPS=120
 compression_start_time=60
 pygame.init()
 space = pymunk.Space()
@@ -20,13 +20,15 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 w_slider = int(0.2*WIDTH)
 h_slider = int(0.03*HEIGHT)
 
+# Coords of the top left of wave sim
 x_wave=30
 y_wave=30
+# Coords of the bottom right of wave sim
 w_wave= int(WIDTH*2/3) - x_wave
 h_wave= int(HEIGHT/2) - y_wave
 
 
-'''--- GUI ELEMENTS ---'''
+# --- GUI ELEMENTS ---
 
 class Button():
     def __init__(self,title: str,x: int,y: int):
@@ -135,18 +137,18 @@ y0=int(0.2*HEIGHT)
 sep=h_slider+50
 sliders={
     "Particle size": Slider("Particle size", 1, 10, x0, y0),
-    "Inital speed": Slider("Inital speed", 0, 500, x0, y0+sep),
+    "Inital speed": Slider("Inital speed", 0, 200, x0, y0+sep),
     "Elasticity": Slider("Elasticity", 0, 1, x0, y0+2*sep, discrete=False),
     "Piston speed": Slider("Piston speed", 1, 400, x0, y0+3*sep),
     "Compression rate": Slider("Compression (%)", 0, 100, x0, y0+4*sep),
-    "Number of particles": Slider("N° of particles", 1, 500, x0, y0+5*sep),
+    "Number of particles": Slider("N° of particles", 1, 1000, x0, y0+5*sep),
 }
 StartButton=Button("Start", int(WIDTH*5/6), int(HEIGHT*0.75))
 QuitButton=Button("Quit", int(WIDTH*5/6), int(HEIGHT*0.75)+sep)
 buttons=[StartButton, QuitButton]
 
 
-'''--- SIMULATION ELEMENTS ---'''
+# --- SIMULATION ELEMENTS ---
 
 
 class Ball():
@@ -176,7 +178,7 @@ class Kinematic_Wall():
     def __init__(self, p1, p2, pusher_speed, compression):
         self.speed=pusher_speed
         # Multiplying by frame rate because units 
-        self.run_time=FPS*(w_wave*compression/(100*pusher_speed))
+        self.run_time=FPS*((w_wave-x_wave)*compression/(100*pusher_speed))
         self.body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
         self.shape = pymunk.Segment(self.body, p1, p2, 10)
         self.shape.body.velocity = (0, 0)
@@ -225,16 +227,16 @@ def draw_wave(balls : list[Ball], piston : Kinematic_Wall):
         pygame.draw.circle(screen, (255, 255, 255),
                             (int(x), int(y)), ball_size)
     px=piston.body.position[0]
-    pygame.draw.rect(screen, (202, 204, 206),(int(px),y_wave,10, h_wave-y_wave))
-    pygame.draw.rect(screen, (202, 204, 206),(x_wave,(h_wave+y_wave)//2-5,int(px-5)-x_wave, 10))
+    pygame.draw.rect(screen, (202, 204, 206),(int(px+x_wave),y_wave,10, h_wave-y_wave))
+    pygame.draw.rect(screen, (202, 204, 206),(x_wave,(h_wave+y_wave)//2-5,int(px), 10))
     piston.stop()
 
 def graph_wave(balls : list[Ball]):
     ball_size=balls[0].shape.radius
-    ArrowSize=20
+    ArrowSize=10
     nbrSplits=50
-    xScale=int((w_wave-x_wave)/nbrSplits)
-    yScale=int((h_wave-y_wave)/(0.5*xScale*(h_wave-y_wave)/(2*ball_size)**2))
+
+    # x and y axis
     pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave), (w_wave,HEIGHT-y_wave))
     pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave), (x_wave,HEIGHT//2+y_wave))
     pygame.draw.polygon(screen, (255,255,255), 
@@ -243,12 +245,30 @@ def graph_wave(balls : list[Ball]):
     pygame.draw.polygon(screen, (255,255,255), 
                         points=[(int(x_wave+ArrowSize/sqrt(2)),int(HEIGHT//2+y_wave+ArrowSize/sqrt(2))), 
                                 (x_wave,HEIGHT//2+y_wave), (int(x_wave-ArrowSize/sqrt(2)),int(HEIGHT//2+y_wave+ArrowSize/sqrt(2)))])
+                        
+    xScale=int((w_wave-x_wave)/nbrSplits)
     bins=[0]*(nbrSplits+1)
+    avg=0
     for ball in balls:
         x =ball.body.position[0]
         binIndex=min(int((x-x_wave)/xScale),nbrSplits)
+        binIndex=max(binIndex,0)
         bins[binIndex]+=1
+
+    max_val=max(bins)
+    yScale=int(0.85*(h_wave-y_wave)/max_val)
+    # Drawing maximum density for reference
+    pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave-max_val*yScale), (int(x_wave*1.2),HEIGHT-y_wave-max_val*yScale))
+    y_font = pygame.font.Font(None, 20)
+    ytext = y_font.render(f"{max_val}", True, (255, 255, 255))
+    ytext_rect = ytext.get_rect(center=(x_wave//3,HEIGHT-y_wave-max_val*yScale))
+    screen.blit(ytext, ytext_rect)
+    for i in range(len(bins)):
+        pygame.draw.rect(screen, (255, 165, 0),(i*xScale+x_wave-xScale//2,HEIGHT-y_wave-bins[i]*yScale,xScale, bins[i]*yScale))
+        pygame.draw.line(screen, (255,255,255),(i*xScale+x_wave,HEIGHT-y_wave), (i*xScale+x_wave,HEIGHT-int(y_wave*4/5)))
+    
     pygame.draw.lines(screen, (255, 165, 0), closed=False, points=[(i*xScale+x_wave, HEIGHT-y_wave-bins[i]*yScale) for i in range(len(bins))])
+
     
 
 if __name__ == "__main__":
