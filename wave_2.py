@@ -129,7 +129,12 @@ def draw_menu(sliders : dict[str : Slider], buttons : list[Button]):
     for button in buttons:
         button.render()
 
-
+def inside_box(x : int,y : int)-> bool:
+    ''' Takes the coordinates of 
+    a ball and returns True 
+    if it is inside the sim box
+    '''
+    return x >= x_wave and x <= w_wave and y >= y_wave and y <= h_wave
 
 # Initializing sliders
 x0=int(WIDTH*5/6-w_slider*0.25)
@@ -222,10 +227,13 @@ def start_wave():
 
 def draw_wave(balls : list[Ball], piston : Kinematic_Wall):
     ball_size=balls[0].shape.radius
+    pygame.draw.circle(screen, (255, 0, 0),(x_wave, y_wave), ball_size)
+    pygame.draw.circle(screen, (255, 0, 0),(w_wave, h_wave), ball_size)
     for ball in balls:
         x, y = ball.body.position
-        pygame.draw.circle(screen, (255, 255, 255),
-                            (int(x), int(y)), ball_size)
+        # Assuring the ball is in the box
+        if inside_box(int(x),int(y)):
+            pygame.draw.circle(screen, (255, 255, 255),(int(x), int(y)), ball_size)
     px=piston.body.position[0]
     pygame.draw.rect(screen, (202, 204, 206),(int(px+x_wave),y_wave,10, h_wave-y_wave))
     pygame.draw.rect(screen, (202, 204, 206),(x_wave,(h_wave+y_wave)//2-5,int(px), 10))
@@ -234,7 +242,7 @@ def draw_wave(balls : list[Ball], piston : Kinematic_Wall):
 def graph_wave(balls : list[Ball]):
     ball_size=balls[0].shape.radius
     ArrowSize=10
-    nbrSplits=50
+    nbrSplits=10
 
     # x and y axis
     pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave), (w_wave,HEIGHT-y_wave))
@@ -264,13 +272,12 @@ def graph_wave(balls : list[Ball]):
     ytext_rect = ytext.get_rect(center=(x_wave//3,HEIGHT-y_wave-max_val*yScale))
     screen.blit(ytext, ytext_rect)
     for i in range(len(bins)):
-        pygame.draw.rect(screen, (255, 165, 0),(i*xScale+x_wave-xScale//2,HEIGHT-y_wave-bins[i]*yScale,xScale, bins[i]*yScale))
+        pygame.draw.rect(screen, (38,247,253),(i*xScale+x_wave-xScale//2,HEIGHT-y_wave-bins[i]*yScale,xScale, bins[i]*yScale))
         pygame.draw.line(screen, (255,255,255),(i*xScale+x_wave,HEIGHT-y_wave), (i*xScale+x_wave,HEIGHT-int(y_wave*4/5)))
     
-    pygame.draw.lines(screen, (255, 165, 0), closed=False, points=[(i*xScale+x_wave, HEIGHT-y_wave-bins[i]*yScale) for i in range(len(bins))])
+    #pygame.draw.lines(screen, (255, 165, 0), closed=False, points=[(i*xScale+x_wave, HEIGHT-y_wave-bins[i]*yScale) for i in range(len(bins))])
 
     
-
 if __name__ == "__main__":
     WAVE= False
     running = True
@@ -314,7 +321,7 @@ if __name__ == "__main__":
                     dragged = None
 
         # Wiping off the screen
-        screen.fill((0, 0, 0))
+        screen.fill((15,23,42))
 
         # Re-drawing elements
         draw_menu(sliders, buttons)
