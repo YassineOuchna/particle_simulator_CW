@@ -12,7 +12,7 @@ compression_start_time=60
 pygame.init()
 space = pymunk.Space()
 WIDTH, HEIGHT = int(
-    0.95*pygame.display.Info().current_w), int(0.95*pygame.display.Info().current_h)
+    pygame.display.Info().current_w), int(pygame.display.Info().current_h)
 FONT_SIZE = 25
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -132,9 +132,12 @@ def draw_menu(sliders : dict[str : Slider], buttons : list[Button]):
 def inside_box(x : int,y : int)-> bool:
     ''' Takes the coordinates of 
     a ball and returns True 
-    if it is inside the sim box
+    if it is inside the sim box :
+    surrounded by the piston and sim walls
     '''
-    return x >= x_wave and x <= w_wave and y >= y_wave and y <= h_wave
+    # Pistion's x-position
+    px = piston.body.position[0]
+    return x >= x_wave + int(px+10) and x <= w_wave and y >= y_wave and y <= h_wave
 
 # Initializing sliders
 x0=int(WIDTH*5/6-w_slider*0.25)
@@ -216,8 +219,11 @@ def start_wave():
     num_of_balls=sliders["Number of particles"].value
 
     # Creating physical objects
-    balls = [Ball(random.randint(x_wave, w_wave), random.randint(y_wave, h_wave), 
-                  speed_limit, particle_size,elasticity) for i in range(num_of_balls)]
+    balls = set()
+    for i in range(num_of_balls):
+        balls.add(Ball(random.randint(x_wave, w_wave), random.randint(y_wave, h_wave), 
+                  speed_limit, particle_size,elasticity))
+
     piston = Kinematic_Wall((x_wave, y_wave), (x_wave, h_wave), pusher_speed, compression)
     Satistic_Wall((x_wave, y_wave), (w_wave, y_wave))
     Satistic_Wall((w_wave, y_wave), (w_wave, h_wave))
@@ -225,24 +231,36 @@ def start_wave():
 
     return balls, piston
 
-def draw_wave(balls : list[Ball], piston : Kinematic_Wall):
-    ball_size=balls[0].shape.radius
+def draw_wave(balls : set[Ball], piston : Kinematic_Wall):
+    for ball in balls:
+        ball_size=ball.shape.radius
+        break
+
     pygame.draw.circle(screen, (255, 0, 0),(x_wave, y_wave), ball_size)
     pygame.draw.circle(screen, (255, 0, 0),(w_wave, h_wave), ball_size)
+    
+    # List of balls that are out of bounds
+    outOfBounds = []
     for ball in balls:
         x, y = ball.body.position
         # Assuring the ball is in the box
         if inside_box(int(x),int(y)):
             pygame.draw.circle(screen, (255, 255, 255),(int(x), int(y)), ball_size)
+        else:
+            outOfBounds.append(ball)
+    
+    # Removing balls
+    for ball in outOfBounds:
+        balls.discard(ball)
+
     px=piston.body.position[0]
     pygame.draw.rect(screen, (202, 204, 206),(int(px+x_wave),y_wave,10, h_wave-y_wave))
     pygame.draw.rect(screen, (202, 204, 206),(x_wave,(h_wave+y_wave)//2-5,int(px), 10))
     piston.stop()
 
-def graph_wave(balls : list[Ball]):
-    ball_size=balls[0].shape.radius
+def graph_wave(balls : set[Ball]):
     ArrowSize=10
-    nbrSplits=10
+    nbrSplits=50
 
     # x and y axis
     pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave), (w_wave,HEIGHT-y_wave))
@@ -275,7 +293,7 @@ def graph_wave(balls : list[Ball]):
         pygame.draw.rect(screen, (38,247,253),(i*xScale+x_wave-xScale//2,HEIGHT-y_wave-bins[i]*yScale,xScale, bins[i]*yScale))
         pygame.draw.line(screen, (255,255,255),(i*xScale+x_wave,HEIGHT-y_wave), (i*xScale+x_wave,HEIGHT-int(y_wave*4/5)))
     
-    #pygame.draw.lines(screen, (255, 165, 0), closed=False, points=[(i*xScale+x_wave, HEIGHT-y_wave-bins[i]*yScale) for i in range(len(bins))])
+    pygame.draw.lines(screen, (255, 165, 0), closed=False, points=[(i*xScale+x_wave, HEIGHT-y_wave-bins[i]*yScale) for i in range(len(bins))])
 
     
 if __name__ == "__main__":
