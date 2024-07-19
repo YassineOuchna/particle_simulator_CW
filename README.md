@@ -7,34 +7,21 @@ Due to the limitation of the game engine and cpu performance, we only simulate t
 ### **Features**
 The simulator consists of two modes : *diffusion mode* and *wave mode*, each mode allows users to alter the number of particles, size of the particles, initial speed distribution, elasticity and friction via a Graphic interface. 
 
+## Installation
+The simulator requires the following python packages:
+
+pygame, pymunk.
+
 ## Current working demo
 After installing the required packages, run the following command : \
 ```bash
 python particle_simulator.py
 ```
 
-*Preview of the wave mode* 
+*Preview* 
 
 <img src='./demos/wave.gif?raw=true'/>
 
-
-## Diffusion mode 
-
-By running the file *diffusion_mode.py*, you are presented with an
- interface to change different parameters as well as a button to graph 
-particle density in the opposite compartment in real time (although quite laggy). The simulation
-to show the diffusion of two types of particles in two initially seperated compartments that are fused into one compartment
-by deleting the wall sperating them. 
-
-*Preview of the diffusion mode*
-
-<img src='./demos/diffusion.gif?raw=true'/>
-
-
-## Installation
-The simulator requires the following python packages:
-
-pygame, pymunk.
 
 
 ## State and upcoming work

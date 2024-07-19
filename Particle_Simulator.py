@@ -17,8 +17,6 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
 
 # Setting up first screen
-
-
 def wave_button(x, y, w, h):
     l = pygame.draw.rect(screen, (10, 0, 255),
                          (x-w//2, y-h//2, w, h))
