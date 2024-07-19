@@ -1,13 +1,14 @@
 import pygame
-import wave_2
+import wave_sim
+import diffusion_sim 
 
 # GLOBAL PARAMETERS
 WIDTH, HEIGHT = int(
     pygame.display.Info().current_w), int(pygame.display.Info().current_h)
 RUNNING = True
-FONT_SIZE = 40
+FONT_SIZE = 50
 XPLACEMENT = int(0.5*WIDTH)
-YPLACEMENT = int(0.05*HEIGHT)
+YPLACEMENT = int(0.16*HEIGHT)
 BH = int(HEIGHT*0.05)
 BW = int(WIDTH*0.15)
 
@@ -73,9 +74,13 @@ while RUNNING:
                 mx, my = pygame.mouse.get_pos()
                 if WaveButton.collidepoint(mx, my):
                     # Launching wave mode
-                    wave_2.wave_mode()
+                    wave_sim.wave_mode()
+                    # Returning to main menu
+                    WaveButton, DiffusionButton, QuitButton = main_menu()
                 if DiffusionButton.collidepoint(mx, my):
-                    print('Diffuse')
+                    diffusion_sim.diffusion_mode()
+                    WaveButton, DiffusionButton, QuitButton = main_menu()
+                    
                 if QuitButton.collidepoint(mx, my):
                     RUNNING = False
 

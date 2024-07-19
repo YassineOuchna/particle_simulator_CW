@@ -21,7 +21,7 @@ h_slider = int(0.03*HEIGHT)
 
 # Coords of the top left of wave sim
 # Based on my screen proportions
-x_wave=int(0.01 * WIDTH)
+x_wave=int(0.015* WIDTH)
 y_wave=int(0.05 * HEIGHT)
 
 # Coords of the bottom right of wave sim
@@ -145,7 +145,7 @@ sliders={
     "Number of particles": Slider("N° of particles", 1, 1000, x0, y0+5*sep),
 }
 StartButton=Button("Start", int(WIDTH*5/6), int(HEIGHT*0.75))
-QuitButton=Button("Quit", int(WIDTH*5/6), int(HEIGHT*0.75)+sep)
+QuitButton=Button("Main Menu", int(WIDTH*5/6), int(HEIGHT*0.75)+sep)
 buttons=[StartButton, QuitButton]
 
 
@@ -288,9 +288,9 @@ def graph_wave(balls : set[Ball]):
     yScale=int(0.85*(h_wave-y_wave)/max_val)
     # Drawing maximum density for reference
     pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave-max_val*yScale), (int(x_wave*1.2),HEIGHT-y_wave-max_val*yScale))
-    y_font = pygame.font.Font(None, 20)
-    ytext = y_font.render(f"{max_val}", True, (255, 255, 255))
-    ytext_rect = ytext.get_rect(center=(x_wave//3,HEIGHT-y_wave-max_val*yScale))
+    y_font = pygame.font.Font(None, FONT_SIZE)
+    ytext = y_font.render(f"Max density = {max_val}", True, (255, 255, 255))
+    ytext_rect = ytext.get_rect(center=(x_wave+3*xScale,HEIGHT//2 + y_wave//2))
     screen.blit(ytext, ytext_rect)
     for i in range(len(bins)):
         pygame.draw.rect(screen, (38,247,253),(i*xScale+x_wave-xScale//2,HEIGHT-y_wave-bins[i]*yScale,xScale, bins[i]*yScale))
@@ -358,7 +358,7 @@ def wave_mode():
             space.step(1/FPS)
 
         pygame.display.update()
-    #pygame.quit()
+    screen.fill((15,23,42))
 
 
 if __name__ == "__main__":
