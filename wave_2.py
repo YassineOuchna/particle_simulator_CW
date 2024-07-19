@@ -1,7 +1,6 @@
 import pygame
 import pymunk
 import random
-import time
 from numpy import sqrt
 
 # --- INITIALIZING ENVIRONEMENT & GLOBAL CONSTANTS ---
@@ -21,11 +20,14 @@ w_slider = int(0.2*WIDTH)
 h_slider = int(0.03*HEIGHT)
 
 # Coords of the top left of wave sim
-x_wave=30
-y_wave=30
+# Based on my screen proportions
+x_wave=int(0.01 * WIDTH)
+y_wave=int(0.05 * HEIGHT)
+
 # Coords of the bottom right of wave sim
-w_wave= int(WIDTH*2/3) - x_wave
-h_wave= int(HEIGHT/2) - y_wave
+wave_size = 1
+w_wave= int(wave_size*(int(WIDTH*2/3) - x_wave))
+h_wave= int(wave_size*(int(HEIGHT/2) - y_wave))
 
 
 # --- GUI ELEMENTS ---
@@ -57,7 +59,7 @@ class Slider():
         self.min = min
         self.max = max
         self.cy = y             # Position of the topleft of the slider handle
-        self.cx = x
+        self.cx = x + w_slider//2
         if self.discrete:
             self.value = round(round(100*(self.min+(self.max-self.min) *
                                 (self.cx-self.x)/(0.9*w_slider)))/100)
@@ -105,10 +107,10 @@ class Slider():
 def draw_menu(sliders : dict[str : Slider], buttons : list[Button]):
     
     # Slicing the screen
-    purple=(255, 0, 246)
-    pygame.draw.line(screen, purple,(int(WIDTH*2/3),0), (int(WIDTH*2/3),HEIGHT))
-    pygame.draw.line(screen, purple,(0,HEIGHT//2), (int(WIDTH*2/3),HEIGHT//2))
-    pygame.draw.circle(screen, purple,(WIDTH//2,HEIGHT//2), radius=2)
+    wall_color=(10, 0, 255)
+    wall_width = 0.005 * WIDTH
+    pygame.draw.rect(screen, wall_color,((int(WIDTH*0.67),0, wall_width, HEIGHT)))
+    pygame.draw.rect(screen, wall_color,(0,HEIGHT//2, int(WIDTH*0.67), wall_width))
     
     # Drawing the simulation box
     pygame.draw.line(screen, (255,255,255),(x_wave, y_wave), (w_wave, y_wave))
@@ -129,15 +131,6 @@ def draw_menu(sliders : dict[str : Slider], buttons : list[Button]):
     for button in buttons:
         button.render()
 
-def inside_box(x : int,y : int)-> bool:
-    ''' Takes the coordinates of 
-    a ball and returns True 
-    if it is inside the sim box :
-    surrounded by the piston and sim walls
-    '''
-    # Pistion's x-position
-    px = piston.body.position[0]
-    return x >= x_wave + int(px+10) and x <= w_wave and y >= y_wave and y <= h_wave
 
 # Initializing sliders
 x0=int(WIDTH*5/6-w_slider*0.25)
@@ -203,6 +196,17 @@ class Kinematic_Wall():
         else:
             self.shape.body.velocity = (self.speed, 0)
 
+def inside_box(x : int,y : int, piston : Kinematic_Wall)-> bool:
+    ''' Takes the coordinates of 
+    a ball and returns True 
+    if it is inside the sim box :
+    surrounded by the piston and sim walls.
+    Called only after the sim has started.
+    '''
+    px = piston.body.position[0]
+    return x >= x_wave + int(px+10) and x <= w_wave and y >= y_wave and y <= h_wave
+
+
 def start_wave():
     # Removing old shapes
     for shape in space.shapes:
@@ -220,7 +224,7 @@ def start_wave():
 
     # Creating physical objects
     balls = set()
-    for i in range(num_of_balls):
+    for _ in range(num_of_balls):
         balls.add(Ball(random.randint(x_wave, w_wave), random.randint(y_wave, h_wave), 
                   speed_limit, particle_size,elasticity))
 
@@ -236,20 +240,17 @@ def draw_wave(balls : set[Ball], piston : Kinematic_Wall):
         ball_size=ball.shape.radius
         break
 
-    pygame.draw.circle(screen, (255, 0, 0),(x_wave, y_wave), ball_size)
-    pygame.draw.circle(screen, (255, 0, 0),(w_wave, h_wave), ball_size)
-    
     # List of balls that are out of bounds
     outOfBounds = []
     for ball in balls:
         x, y = ball.body.position
         # Assuring the ball is in the box
-        if inside_box(int(x),int(y)):
+        if inside_box(int(x),int(y), piston):
             pygame.draw.circle(screen, (255, 255, 255),(int(x), int(y)), ball_size)
         else:
             outOfBounds.append(ball)
     
-    # Removing balls
+    # Removing outof bound balls
     for ball in outOfBounds:
         balls.discard(ball)
 
@@ -262,19 +263,21 @@ def graph_wave(balls : set[Ball]):
     ArrowSize=10
     nbrSplits=50
 
+    # x-units
+    xScale=int((w_wave-x_wave)/nbrSplits)
+
     # x and y axis
-    pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave), (w_wave,HEIGHT-y_wave))
+    pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave), (w_wave + xScale,HEIGHT-y_wave))
     pygame.draw.line(screen, (255,255,255),(x_wave,HEIGHT-y_wave), (x_wave,HEIGHT//2+y_wave))
     pygame.draw.polygon(screen, (255,255,255), 
-                        points=[(int(w_wave-ArrowSize/sqrt(2)),int(HEIGHT-y_wave-ArrowSize/sqrt(2))), 
-                                (w_wave,HEIGHT-y_wave), (int(w_wave-ArrowSize/sqrt(2)),int(HEIGHT-y_wave+ArrowSize/sqrt(2)))])
+                        points=[(int(w_wave+xScale-ArrowSize/sqrt(2)),int(HEIGHT-y_wave-ArrowSize/sqrt(2))), 
+                                (w_wave + xScale,HEIGHT-y_wave), (int(w_wave + xScale-ArrowSize/sqrt(2)),int(HEIGHT-y_wave+ArrowSize/sqrt(2)))])
     pygame.draw.polygon(screen, (255,255,255), 
                         points=[(int(x_wave+ArrowSize/sqrt(2)),int(HEIGHT//2+y_wave+ArrowSize/sqrt(2))), 
                                 (x_wave,HEIGHT//2+y_wave), (int(x_wave-ArrowSize/sqrt(2)),int(HEIGHT//2+y_wave+ArrowSize/sqrt(2)))])
                         
-    xScale=int((w_wave-x_wave)/nbrSplits)
+    # Splitting spatial data into bins
     bins=[0]*(nbrSplits+1)
-    avg=0
     for ball in balls:
         x =ball.body.position[0]
         binIndex=min(int((x-x_wave)/xScale),nbrSplits)
@@ -293,10 +296,14 @@ def graph_wave(balls : set[Ball]):
         pygame.draw.rect(screen, (38,247,253),(i*xScale+x_wave-xScale//2,HEIGHT-y_wave-bins[i]*yScale,xScale, bins[i]*yScale))
         pygame.draw.line(screen, (255,255,255),(i*xScale+x_wave,HEIGHT-y_wave), (i*xScale+x_wave,HEIGHT-int(y_wave*4/5)))
     
-    pygame.draw.lines(screen, (255, 165, 0), closed=False, points=[(i*xScale+x_wave, HEIGHT-y_wave-bins[i]*yScale) for i in range(len(bins))])
+    # Drawing a line graph instead of  a bar one
+    # pygame.draw.lines(screen, (255, 165, 0), closed=False, points=
+    #                   [(i*xScale+x_wave, HEIGHT-y_wave-bins[i]*yScale) for i in range(len(bins))])
 
-    
-if __name__ == "__main__":
+def wave_mode():
+    """
+    Runs the particle simulator in wave mode.
+    """
     WAVE= False
     running = True
     dragged = None
@@ -321,7 +328,7 @@ if __name__ == "__main__":
                     # Button logic
                     if StartButton.render().collidepoint(mx,my):
                         WAVE=True
-                        balls, piston=start_wave()
+                        balls, piston =start_wave()
                     if QuitButton.render().collidepoint(mx,my):
                         running=False
             
@@ -351,4 +358,9 @@ if __name__ == "__main__":
             space.step(1/FPS)
 
         pygame.display.update()
-    pygame.quit()
+    #pygame.quit()
+
+
+if __name__ == "__main__":
+    wave_mode()
+

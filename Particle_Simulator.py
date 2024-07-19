@@ -1,18 +1,19 @@
 import pygame
+import wave_2
 
 # GLOBAL PARAMETERS
-WIDTH = 750
-HEIGHT = 750
+WIDTH, HEIGHT = int(
+    pygame.display.Info().current_w), int(pygame.display.Info().current_h)
 RUNNING = True
 FONT_SIZE = 40
 XPLACEMENT = int(0.5*WIDTH)
 YPLACEMENT = int(0.05*HEIGHT)
 BH = int(HEIGHT*0.05)
 BW = int(WIDTH*0.15)
+
 # Initializing display
-pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption('Particle Simulator')
+
 
 # Setting up first screen
 
@@ -48,6 +49,8 @@ def quit_button(x, y, w, h):
 
 
 def main_menu():
+    pygame.init()
+    pygame.display.set_caption('Particle Simulator')
     font = pygame.font.Font(None, FONT_SIZE)
     text = font.render('Particle Simulator', True, (255, 255, 255))
     text_rect = text.get_rect(center=(XPLACEMENT, YPLACEMENT))
@@ -69,7 +72,8 @@ while RUNNING:
             if pygame.mouse.get_pressed()[0]:     # Left mouse click
                 mx, my = pygame.mouse.get_pos()
                 if WaveButton.collidepoint(mx, my):
-                    pygame.display.set_mode((500, 500))
+                    # Launching wave mode
+                    wave_2.wave_mode()
                 if DiffusionButton.collidepoint(mx, my):
                     print('Diffuse')
                 if QuitButton.collidepoint(mx, my):
